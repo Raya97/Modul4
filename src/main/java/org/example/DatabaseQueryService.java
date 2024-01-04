@@ -1,7 +1,5 @@
 package org.example;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,51 +17,136 @@ public class DatabaseQueryService {
         this.connection = Database.getInstance().getConnection();
     }
 
-    public List<MaxProjectCountClient> findMaxProjectsClient() {
+    public List<MaxProjectCountClient> findMaxProjectsClient(int yourConditionValue) {
         List<MaxProjectCountClient> result = new ArrayList<>();
-        try {
-            // SQL запит з відповідного файлу (find_max_projects_client.sql)
-            String sqlFilePath = "sql/find_max_projects_client.sql";
-            String sql = readSQLFromFile(sqlFilePath);
+        String sqlForClient = "SELECT NAME, ID FROM client WHERE ID = ?";
 
-            // Виконую SQL-запит
-            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sqlForClient)) {
+            preparedStatement.setInt(1, yourConditionValue);
             ResultSet resultSet = preparedStatement.executeQuery();
 
-            // Результат запиту і додаю його до списку
+            while (resultSet.next()) {
+                MaxProjectCountClient client = new MaxProjectCountClient();
+                client.setName(resultSet.getString("name"));
+                client.setProjectCount(resultSet.getInt("project_count"));
+                client.setStartDate(resultSet.getDate("start_date"));
+                client.setFinishDate(resultSet.getDate("finish_date"));
+                client.setProjectId(resultSet.getInt("project_id"));
+                result.add(client);
+            }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Помилка при вибірці даних з вашої таблиці", e);
+        }
+
+        return result;
+    }
+
+
+    public List<MaxProjectCountClient> findMaxProjectsProject(int yourConditionValue) {
+        List<MaxProjectCountClient> result = new ArrayList<>();
+
+        // SQL-запит для проектів
+        String sqlForProject = "SELECT ID, CLIENT_ID, START_DATE, FINISH_DATE FROM project WHERE CLIENT_ID = ?";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sqlForProject)) {
+            preparedStatement.setInt(1, yourConditionValue);
+            ResultSet resultSet = preparedStatement.executeQuery();
+
             while (resultSet.next()) {
                 MaxProjectCountClient client = new MaxProjectCountClient();
                 client.setName(resultSet.getString("name"));
                 client.setProjectCount(resultSet.getInt("project_count"));
                 result.add(client);
             }
-        } catch (SQLException | IOException e) {
-            logger.log(Level.SEVERE, "Помилка при вибірці даних з бази даних", e);
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Помилка при вибірці даних з таблиці project", e);
         }
+
         return result;
     }
 
-    // Зчитування SQL запитів з файлу
-    private String readSQLFromFile(String filePath) throws IOException {
-        StringBuilder sql = new StringBuilder();
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                sql.append(line).append("\n");
+    public List<MaxProjectCountClient> findMaxProjectsProjectWorker(int yourConditionValue) {
+        List<MaxProjectCountClient> result = new ArrayList<>();
+
+        // SQL-запит для project_worker
+        String sqlForProjectWorker = "SELECT PROJECT_ID, WORKER_ID FROM project_worker WHERE WORKER_ID = ?";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sqlForProjectWorker)) {
+            preparedStatement.setInt(1, yourConditionValue);
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            while (resultSet.next()) {
+                MaxProjectCountClient client = new MaxProjectCountClient();
+                client.setName(resultSet.getString("name"));
+                client.setProjectCount(resultSet.getInt("project_count"));
+                result.add(client);
             }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Помилка при вибірці даних з таблиці project_worker", e);
         }
-        return sql.toString();
+
+        return result;
+    }
+
+    public List<MaxProjectCountClient> findMaxProjectsWorker(int yourConditionValue) {
+        List<MaxProjectCountClient> result = new ArrayList<>();
+
+        // SQL-запит для worker
+        String sqlForWorker = "SELECT ID, NAME, BIRTHDAY, LEVEL, SALARY FROM worker WHERE ID = ?";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sqlForWorker)) {
+            preparedStatement.setInt(1, yourConditionValue);
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            while (resultSet.next()) {
+                MaxProjectCountClient client = new MaxProjectCountClient();
+                client.setName(resultSet.getString("name"));
+                client.setProjectCount(resultSet.getInt("project_count"));
+                result.add(client);
+            }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Помилка при вибірці даних з таблиці worker", e);
+        }
+
+        return result;
     }
 
     public static void main(String[] args) {
-        // Використання методу findMaxProjectsClient
         DatabaseQueryService queryService = new DatabaseQueryService();
-        List<MaxProjectCountClient> clients = queryService.findMaxProjectsClient();
 
-        // Виведення результату на консоль
+        // Виклик методів для пошуку клієнтів, проектів, project_worker та працівників
+        List<MaxProjectCountClient> clients = queryService.findMaxProjectsClient(42);
+        List<MaxProjectCountClient> projects = queryService.findMaxProjectsProject(42);
+        List<MaxProjectCountClient> projectWorkers = queryService.findMaxProjectsProjectWorker(42);
+        List<MaxProjectCountClient> workers = queryService.findMaxProjectsWorker(42);
+
+        // Виведення результату
         for (MaxProjectCountClient client : clients) {
-            System.out.println("Ім'я: " + client.getName());
+            System.out.println("Ім'я клієнта: " + client.getName());
             System.out.println("Кількість проектів: " + client.getProjectCount());
+            System.out.println("-----------------------------");
+        }
+
+        for (MaxProjectCountClient project : projects) {
+            System.out.println("ID проекту: " + project.getId());
+            System.out.println("Клієнт ID: " + project.getClientId());
+            System.out.println("Дата початку: " + project.getStartDate());
+            System.out.println("Дата завершення: " + project.getFinishDate());
+            System.out.println("-----------------------------");
+        }
+
+        for (MaxProjectCountClient projectWorker : projectWorkers) {
+            System.out.println("ID проекту: " + projectWorker.getProjectId());
+            System.out.println("ID працівника: " + projectWorker.getWorkerId());
+            System.out.println("-----------------------------");
+        }
+
+        for (MaxProjectCountClient worker : workers) {
+            System.out.println("ID працівника: " + worker.getId());
+            System.out.println("Ім'я працівника: " + worker.getName());
+            System.out.println("Дата народження: " + worker.getBirthday());
+            System.out.println("Рівень: " + worker.getLevel());
+            System.out.println("Зарплата: " + worker.getSalary());
             System.out.println("-----------------------------");
         }
     }
