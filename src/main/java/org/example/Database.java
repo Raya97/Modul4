@@ -13,7 +13,7 @@ public class Database {
     private Database() {
         try {
             // Підключення до бази даних H2
-            connection = DriverManager.getConnection("jdbc:h2:~/Raisa_Modul3", "Raisa", "");
+            connection = DriverManager.getConnection("jdbc:h2:~/Modul6", "Raisa", "");
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Помилка при підключенні до бази даних", e);
         }
